@@ -6,17 +6,19 @@ body {
     margin: 0;
     background-color: #f0f0f0;
     font-family: Arial, sans-serif;
+    overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
 }
 
 .game-container {
     display: flex;
-    flex-direction: column; /* Stack canvas and info panel */
+    flex-direction: column;
     align-items: center;
 }
 
 #gameCanvas {
     border: 1px solid black;
-    background-color: white; /* To mimic Pygame's screen.fill(WHITE) */
+    background-color: white;
+    touch-action: none; /* Important for preventing default touch actions on canvas */
 }
 
 #infoPanel {
@@ -26,8 +28,119 @@ body {
     background-color: #fff;
     min-width: 300px; /* Adjust as needed */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: left;
 }
 
 #infoPanel p {
     margin: 5px 0;
+}
+
+/* --- Touch Controls --- */
+#touchControlsContainer {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 800px; /* Match canvas width or adjust as needed */
+    margin-top: 15px;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.touch-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    flex: 1;
+    margin: 0 5px;
+}
+
+.touch-controls p {
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.touch-button {
+    padding: 12px 10px;
+    min-width: 60px;
+    width: 100%;
+    max-width: 120px;
+    font-size: 1em;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #e9e9e9;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
+.touch-button:active {
+    background-color: #d0d0d0;
+}
+
+.d-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+.d-pad div { /* Container for left, down, right */
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+}
+.d-pad-up, .d-pad-down {
+    width: calc(33.33% - 4px);
+     margin: 0 auto;
+}
+.d-pad-left, .d-pad-right {
+     width: calc(33.33% - 4px);
+}
+.action-button {
+    margin-top: 5px;
+}
+
+
+/* --- Help Menu & Pause Screen --- */
+/* These are drawn on canvas, so CSS is not directly used for them,
+   but this is a placeholder if you decide to use DOM elements later. */
+.overlay-text { /* Example if you switch to DOM overlay */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 1.2em;
+    z-index: 100;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 600px) {
+    #touchControlsContainer {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .touch-controls {
+        width: 90%;
+        margin: 0 auto;
+    }
+    .touch-button {
+        padding: 15px 12px;
+        font-size: 1.1em;
+    }
 }

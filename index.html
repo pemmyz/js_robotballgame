@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> <!-- Added user-scalable=no -->
     <title>JavaScipt Robot Ball Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,6 +15,35 @@
             <p id="roundTimeText">Current Round: 0s</p>
             <p id="blueSprintText">Blue Sprint: Inactive</p>
             <p id="greenSprintText">Green Sprint: Inactive</p>
+            <p id="pauseHelpText" style="font-size: 0.8em; text-align: center;">P: Pause | H: Help</p>
+        </div>
+        <div id="touchControlsContainer">
+            <div id="player1TouchControls" class="touch-controls">
+                <p>Player 1 (Blue)</p>
+                <div class="d-pad">
+                    <button id="p1TouchUp" class="touch-button d-pad-up">↑</button>
+                    <div>
+                        <button id="p1TouchLeft" class="touch-button d-pad-left">←</button>
+                        <button id="p1TouchDown" class="touch-button d-pad-down">↓</button>
+                        <button id="p1TouchRight" class="touch-button d-pad-right">→</button>
+                    </div>
+                </div>
+                <button id="p1TouchSprint" class="touch-button action-button">Sprint (.)</button>
+                <button id="p1TouchCatch" class="touch-button action-button">Catch (-)</button>
+            </div>
+            <div id="player2TouchControls" class="touch-controls">
+                <p>Player 2 (Green)</p>
+                 <div class="d-pad">
+                    <button id="p2TouchUp" class="touch-button d-pad-up">↑ (W)</button>
+                    <div>
+                        <button id="p2TouchLeft" class="touch-button d-pad-left">← (A)</button>
+                        <button id="p2TouchDown" class="touch-button d-pad-down">↓ (S)</button>
+                        <button id="p2TouchRight" class="touch-button d-pad-right">→ (D)</button>
+                    </div>
+                </div>
+                <button id="p2TouchSprint" class="touch-button action-button">Sprint (V)</button>
+                <button id="p2TouchCatch" class="touch-button action-button">Catch (B)</button>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
