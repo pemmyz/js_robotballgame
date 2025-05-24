@@ -111,24 +111,6 @@ body {
     margin-top: 5px;
 }
 
-
-/* --- Help Menu & Pause Screen --- */
-/* These are drawn on canvas, so CSS is not directly used for them,
-   but this is a placeholder if you decide to use DOM elements later. */
-.overlay-text { /* Example if you switch to DOM overlay */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.75);
-    color: white;
-    padding: 30px;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 1.2em;
-    z-index: 100;
-}
-
 /* Responsive adjustments for smaller screens */
 @media (max-width: 600px) {
     #touchControlsContainer {
