@@ -14,6 +14,9 @@
     --hint-text-color: #aaa;
     --toggle-button-bg: #333;
     --toggle-button-text: #fff;
+    --sprint-bar-empty-bg: #444444;
+    --sprint-bar-full-bg: #388E3C;
+    --sprint-bar-border: #666666;
 }
 
 body {
@@ -46,6 +49,9 @@ body.light-mode {
     --hint-text-color: #555;
     --toggle-button-bg: #ddd;
     --toggle-button-text: #000;
+    --sprint-bar-empty-bg: #cccccc;
+    --sprint-bar-full-bg: #4CAF50;
+    --sprint-bar-border: #aaaaaa;
 }
 
 #darkModeToggle {
@@ -62,7 +68,6 @@ body.light-mode {
     transition: background 0.3s, color 0.3s, border-color 0.3s;
     z-index: 200;
 }
-
 
 .game-container {
     display: flex;
@@ -82,15 +87,68 @@ body.light-mode {
     border: 1px solid var(--panel-border);
     background-color: var(--panel-bg);
     color: var(--text-color);
-    min-width: 300px;
+    min-width: 320px; /* Ensure enough width for columns */
+    max-width: 800px;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 2px 4px var(--shadow-color);
-    text-align: left;
 }
 
-#infoPanel p {
+.player-info-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.player-info-column {
+    flex-basis: 48%; /* Each column takes roughly half, with some space between */
+    display: flex;
+    flex-direction: column;
+}
+.player-info-column p {
+    margin: 3px 0;
+    font-size: 0.9em;
+}
+.player-name {
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px !important;
+}
+
+.sprint-bar-container {
+    width: 100%;
+    height: 14px; /* Slightly taller bar */
+    background-color: var(--sprint-bar-empty-bg);
+    border: 1px solid var(--sprint-bar-border);
+    border-radius: 4px; /* More rounded */
     margin: 5px 0;
+    overflow: hidden;
 }
 
+.sprint-bar-fill {
+    height: 100%;
+    background-color: var(--sprint-bar-full-bg);
+    width: 100%; /* JS will adjust this */
+    border-radius: 3px; /* Slightly smaller radius than container */
+    transition: width 0.1s linear;
+}
+
+.game-stats-row {
+    /* border-top: 1px solid var(--panel-border); */ /* Optional separator */
+    padding-top: 5px;
+    text-align: center;
+}
+.game-stats-row p {
+    margin: 4px 0; /* Slightly more spacing for game stats */
+    font-size: 0.95em;
+}
+#pauseHelpText {
+    font-size: 0.8em !important; /* Keep help text small */
+    margin-top: 8px !important;
+}
+
+
+/* --- Touch Controls --- */
 #touchControlsContainer {
     display: flex;
     justify-content: space-around;
@@ -177,6 +235,13 @@ body.light-mode {
         top: 5px;
         right: 5px;
         padding: 6px 10px;
+    }
+    .player-info-container {
+        flex-direction: column; /* Stack player info on small screens */
+        gap: 10px;
+    }
+    .player-info-column {
+        flex-basis: 100%; /* Full width when stacked */
     }
     #touchControlsContainer {
         flex-direction: column;

@@ -10,24 +10,16 @@ const GOAL_POST_DEPTH = 10;
 let GAME_WHITE = "white";
 let GAME_BLACK = "black";
 let GAME_RED = "red";
-const GAME_GREEN = "green"; // Robot color (can be themed if desired)
-const GAME_BLUE = "blue";   // Robot color (can be themed if desired)
+const GAME_GREEN = "green";
+const GAME_BLUE = "blue";
 
 // Gameplay Constants
 const ROBOT_BASE_SPEED = 2.5;
-const ROBOT_SPRINT_MULTIPLIER = 3.0; // Faster sprint
+const ROBOT_SPRINT_MULTIPLIER = 3.0;
 const SPRINT_ENERGY_MAX = 100;
 const SPRINT_COST_PER_SECOND = 35;
 const SPRINT_RECHARGE_RATE_PER_SECOND = 15;
 const SPRINT_RECHARGE_DELAY_MS = 1500;
-
-// Sprint Bar Visuals - themed
-const SPRINT_BAR_WIDTH = ROBOT_RADIUS * 2.5;
-const SPRINT_BAR_HEIGHT = 6;
-let SPRINT_BAR_COLOR_EMPTY = "#555555";
-let SPRINT_BAR_COLOR_FULL = "#4CAF50";
-let SPRINT_BAR_BORDER_COLOR = "#888888";
-const SPRINT_BAR_Y_OFFSET = ROBOT_RADIUS + 6;
 
 const BALL_FRICTION = 0.98;
 const NORMAL_KICK_STRENGTH = 6;
@@ -47,7 +39,7 @@ let isPaused = false;
 let wasPausedBeforeHelp = false;
 let showHelp = false;
 let pauseStartTime = 0;
-let lastFrameTime = performance.now(); // For deltaTime
+let lastFrameTime = performance.now();
 
 // Key Mappings
 const P1_UP = 'ArrowUp';
@@ -88,9 +80,14 @@ let ball, robot1, robot2;
 const scoreTextElem = document.getElementById('scoreText');
 const totalTimeTextElem = document.getElementById('totalTimeText');
 const roundTimeTextElem = document.getElementById('roundTimeText');
-const blueSprintTextElem = document.getElementById('blueSprintText');
-const greenSprintTextElem = document.getElementById('greenSprintText');
 const pauseHelpTextElem = document.getElementById('pauseHelpText');
+
+// New Info Panel DOM Elements
+const p1SprintBarFill = document.getElementById('p1SprintBarFill');
+const blueStatusTextElem = document.getElementById('blueStatusText');
+const p2SprintBarFill = document.getElementById('p2SprintBarFill');
+const greenStatusTextElem = document.getElementById('greenStatusText');
+
 
 // --- DARK MODE TOGGLE ---
 const darkModeToggleBtn = document.getElementById('darkModeToggle');
@@ -103,18 +100,13 @@ function setDarkMode(enabled) {
         GAME_WHITE = "#222222";
         GAME_BLACK = "#e0e0e0";
         GAME_RED = "tomato";
-        SPRINT_BAR_COLOR_EMPTY = "#444444";
-        SPRINT_BAR_COLOR_FULL = "#388E3C";
-        SPRINT_BAR_BORDER_COLOR = "#666666";
+        // CSS variables handle sprint bar colors in the info panel
     } else {
         bodyElement.classList.add('light-mode');
         darkModeToggleBtn.textContent = '🌙 Dark Mode';
         GAME_WHITE = "white";
         GAME_BLACK = "black";
         GAME_RED = "red";
-        SPRINT_BAR_COLOR_EMPTY = "#cccccc";
-        SPRINT_BAR_COLOR_FULL = "#4CAF50";
-        SPRINT_BAR_BORDER_COLOR = "#aaaaaa";
     }
 }
 
@@ -274,15 +266,7 @@ class Robot {
             if (dist_ball < ROBOT_RADIUS + BALL_RADIUS + 5) { ball_obj.vy += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH; ball_obj.vx += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH * 0.5; last_touch_time = ct; }
         }
     }
-    drawSprintBar() {
-        const barX = this.x - SPRINT_BAR_WIDTH / 2; const barY = this.y + SPRINT_BAR_Y_OFFSET;
-        const energyRatio = this.sprint_energy_current / this.sprint_energy_max;
-        const currentBarWidth = SPRINT_BAR_WIDTH * energyRatio;
-        ctx.fillStyle = SPRINT_BAR_COLOR_EMPTY; ctx.fillRect(barX, barY, SPRINT_BAR_WIDTH, SPRINT_BAR_HEIGHT);
-        ctx.fillStyle = SPRINT_BAR_COLOR_FULL; ctx.fillRect(barX, barY, currentBarWidth, SPRINT_BAR_HEIGHT);
-        ctx.strokeStyle = SPRINT_BAR_BORDER_COLOR; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, SPRINT_BAR_WIDTH, SPRINT_BAR_HEIGHT);
-    }
-    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); this.drawSprintBar(); }
+    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); }
 }
 
 function togglePause() {
@@ -361,19 +345,29 @@ function update_info_panel() {
     totalTimeTextElem.textContent = `Total Playtime: ${Math.floor(total_play)}s`;
     roundTimeTextElem.textContent = `Current Round: ${Math.floor(round_play)}s`;
 
-    if (robot1) {
-        let r1_sprint_info = `Energy: ${Math.floor(robot1.sprint_energy_current)}%`;
-        if (robot1.is_actually_sprinting) r1_sprint_info = "Sprinting";
-        let r1_status = robot1.isAIControlled ? "AI Mode" : r1_sprint_info;
-        if (!robot1.isAIControlled && robot1.hasBall) r1_status += ' (Dribbling)';
-        blueSprintTextElem.textContent = `Blue: ${r1_status}`;
+    if (robot1 && p1SprintBarFill && blueStatusTextElem) {
+        p1SprintBarFill.style.width = `${robot1.sprint_energy_current}%`;
+        let r1_player_states = [];
+        if (!robot1.isAIControlled && robot1.hasBall) r1_player_states.push('Dribbling');
+        if (!robot1.isAIControlled && robot1.is_actually_sprinting) r1_player_states.push('Sprinting');
+
+        let r1_display_status = robot1.isAIControlled ? "AI Mode" : "Player";
+        if (r1_player_states.length > 0) {
+            r1_display_status += ` (${r1_player_states.join(', ')})`;
+        }
+        blueStatusTextElem.textContent = `Status: ${r1_display_status}`;
     }
-    if (robot2) {
-        let r2_sprint_info = `Energy: ${Math.floor(robot2.sprint_energy_current)}%`;
-        if (robot2.is_actually_sprinting) r2_sprint_info = "Sprinting";
-        let r2_status = robot2.isAIControlled ? "AI Mode" : r2_sprint_info;
-        if (!robot2.isAIControlled && robot2.hasBall) r2_status += ' (Dribbling)';
-        greenSprintTextElem.textContent = `Green: ${r2_status}`;
+    if (robot2 && p2SprintBarFill && greenStatusTextElem) {
+        p2SprintBarFill.style.width = `${robot2.sprint_energy_current}%`;
+        let r2_player_states = [];
+        if (!robot2.isAIControlled && robot2.hasBall) r2_player_states.push('Dribbling');
+        if (!robot2.isAIControlled && robot2.is_actually_sprinting) r2_player_states.push('Sprinting');
+        
+        let r2_display_status = robot2.isAIControlled ? "AI Mode" : "Player";
+        if (r2_player_states.length > 0) {
+            r2_display_status += ` (${r2_player_states.join(', ')})`;
+        }
+        greenStatusTextElem.textContent = `Status: ${r2_display_status}`;
     }
 }
 
