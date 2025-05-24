@@ -1,13 +1,68 @@
+:root {
+    /* Dark Mode Defaults */
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --canvas-bg: #222222;
+    --canvas-border: #444;
+    --panel-bg: #1e1e1e;
+    --panel-border: #333;
+    --button-bg: #3a3a3a;
+    --button-text: #e0e0e0;
+    --button-border: #555;
+    --button-active-bg: #505050;
+    --shadow-color: rgba(255, 255, 255, 0.05);
+    --hint-text-color: #aaa;
+    --toggle-button-bg: #333;
+    --toggle-button-text: #fff;
+}
+
 body {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    background-color: #f0f0f0;
+    padding-top: 50px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     font-family: Arial, sans-serif;
-    overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+    overscroll-behavior-y: contain;
+    transition: background-color 0.3s, color 0.3s;
 }
+
+body.light-mode {
+    --bg-color: #f0f0f0;
+    --text-color: #000000;
+    --canvas-bg: white;
+    --canvas-border: black;
+    --panel-bg: #fff;
+    --panel-border: #ccc;
+    --button-bg: #e9e9e9;
+    --button-text: #000000;
+    --button-border: #ccc;
+    --button-active-bg: #d0d0d0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --hint-text-color: #555;
+    --toggle-button-bg: #ddd;
+    --toggle-button-text: #000;
+}
+
+#darkModeToggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    cursor: pointer;
+    background: var(--toggle-button-bg);
+    color: var(--toggle-button-text);
+    border: 1px solid var(--button-border);
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+    z-index: 200;
+}
+
 
 .game-container {
     display: flex;
@@ -16,18 +71,19 @@ body {
 }
 
 #gameCanvas {
-    border: 1px solid black;
-    background-color: white;
-    touch-action: none; /* Important for preventing default touch actions on canvas */
+    border: 1px solid var(--canvas-border);
+    background-color: var(--canvas-bg);
+    touch-action: none;
 }
 
 #infoPanel {
     margin-top: 10px;
     padding: 10px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    min-width: 300px; /* Adjust as needed */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--panel-border);
+    background-color: var(--panel-bg);
+    color: var(--text-color);
+    min-width: 300px;
+    box-shadow: 0 2px 4px var(--shadow-color);
     text-align: left;
 }
 
@@ -35,12 +91,11 @@ body {
     margin: 5px 0;
 }
 
-/* --- Touch Controls --- */
 #touchControlsContainer {
     display: flex;
     justify-content: space-around;
     width: 100%;
-    max-width: 800px; /* Match canvas width or adjust as needed */
+    max-width: 800px;
     margin-top: 15px;
     padding: 0 10px;
     box-sizing: border-box;
@@ -52,9 +107,10 @@ body {
     align-items: center;
     gap: 8px;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--panel-border);
     border-radius: 8px;
-    background-color: #f9f9f9;
+    background-color: var(--panel-bg);
+    color: var(--text-color);
     flex: 1;
     margin: 0 5px;
 }
@@ -72,19 +128,21 @@ body {
     max-width: 120px;
     font-size: 1em;
     cursor: pointer;
-    border: 1px solid #ccc;
+    border: 1px solid var(--button-border);
+    color: var(--button-text);
+    background-color: var(--button-bg);
     border-radius: 5px;
-    background-color: #e9e9e9;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .touch-button:active {
-    background-color: #d0d0d0;
+    background-color: var(--button-active-bg);
 }
 
 .d-pad {
@@ -94,7 +152,7 @@ body {
     gap: 5px;
     width: 100%;
 }
-.d-pad div { /* Container for left, down, right */
+.d-pad div {
     display: flex;
     justify-content: center;
     gap: 5px;
@@ -111,8 +169,15 @@ body {
     margin-top: 5px;
 }
 
-/* Responsive adjustments for smaller screens */
 @media (max-width: 600px) {
+    body {
+        padding-top: 60px;
+    }
+    #darkModeToggle {
+        top: 5px;
+        right: 5px;
+        padding: 6px 10px;
+    }
     #touchControlsContainer {
         flex-direction: column;
         gap: 10px;

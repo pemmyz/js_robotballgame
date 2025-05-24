@@ -7,14 +7,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <button id="darkModeToggle">☀️ Light Mode</button>
+
     <div class="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="infoPanel">
             <p id="scoreText">Score: Blue 0 - Green 0</p>
             <p id="totalTimeText">Total Playtime: 0s</p>
             <p id="roundTimeText">Current Round: 0s</p>
-            <p id="blueSprintText">Blue Sprint: Inactive</p>
-            <p id="greenSprintText">Green Sprint: Inactive</p>
+            <p id="blueSprintText">Blue: Energy: 100%</p> <!-- Updated text example -->
+            <p id="greenSprintText">Green: Energy: 100%</p> <!-- Updated text example -->
             <p id="pauseHelpText" style="font-size: 0.8em; text-align: center;">P: Pause | H: Help | 1/2: Toggle AI</p>
         </div>
         <div id="touchControlsContainer">

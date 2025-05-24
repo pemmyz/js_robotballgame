@@ -6,18 +6,29 @@ const ROBOT_RADIUS = 20;
 const GOAL_WIDTH = 100;
 const GOAL_POST_DEPTH = 10;
 
-// Colors
-const WHITE = "white";
-const GREEN_COLOR = "green";
-const RED_COLOR = "red";
-const BLUE_COLOR = "blue";
-const BLACK_COLOR = "black";
+// Colors - themed
+let GAME_WHITE = "white";
+let GAME_BLACK = "black";
+let GAME_RED = "red";
+const GAME_GREEN = "green"; // Robot color (can be themed if desired)
+const GAME_BLUE = "blue";   // Robot color (can be themed if desired)
 
 // Gameplay Constants
 const ROBOT_BASE_SPEED = 2.5;
-const ROBOT_SPRINT_MULTIPLIER = 2;
-const SPRINT_DURATION_MS = 2000;
-const SPRINT_COOLDOWN_MS = 2000;
+const ROBOT_SPRINT_MULTIPLIER = 3.0; // Faster sprint
+const SPRINT_ENERGY_MAX = 100;
+const SPRINT_COST_PER_SECOND = 35;
+const SPRINT_RECHARGE_RATE_PER_SECOND = 15;
+const SPRINT_RECHARGE_DELAY_MS = 1500;
+
+// Sprint Bar Visuals - themed
+const SPRINT_BAR_WIDTH = ROBOT_RADIUS * 2.5;
+const SPRINT_BAR_HEIGHT = 6;
+let SPRINT_BAR_COLOR_EMPTY = "#555555";
+let SPRINT_BAR_COLOR_FULL = "#4CAF50";
+let SPRINT_BAR_BORDER_COLOR = "#888888";
+const SPRINT_BAR_Y_OFFSET = ROBOT_RADIUS + 6;
+
 const BALL_FRICTION = 0.98;
 const NORMAL_KICK_STRENGTH = 6;
 const TRICK_KICK_VX_STRENGTH = 2;
@@ -36,14 +47,15 @@ let isPaused = false;
 let wasPausedBeforeHelp = false;
 let showHelp = false;
 let pauseStartTime = 0;
+let lastFrameTime = performance.now(); // For deltaTime
 
 // Key Mappings
 const P1_UP = 'ArrowUp';
 const P1_DOWN = 'ArrowDown';
 const P1_LEFT = 'ArrowLeft';
 const P1_RIGHT = 'ArrowRight';
-const P1_SPRINT = 'KeyN';        // 'N' key for P1 Sprint
-const P1_CATCH = 'KeyM';         // 'M' key for P1 Catch
+const P1_SPRINT = 'KeyN';
+const P1_CATCH = 'KeyM';
 
 const P2_UP = 'KeyW';
 const P2_DOWN = 'KeyS';
@@ -70,7 +82,6 @@ let start_time = performance.now();
 let game_start_time = performance.now();
 let last_touch_time = 0;
 let last_toucher = null;
-
 let ball, robot1, robot2;
 
 // DOM Elements
@@ -81,13 +92,45 @@ const blueSprintTextElem = document.getElementById('blueSprintText');
 const greenSprintTextElem = document.getElementById('greenSprintText');
 const pauseHelpTextElem = document.getElementById('pauseHelpText');
 
+// --- DARK MODE TOGGLE ---
+const darkModeToggleBtn = document.getElementById('darkModeToggle');
+const bodyElement = document.body;
+
+function setDarkMode(enabled) {
+    if (enabled) {
+        bodyElement.classList.remove('light-mode');
+        darkModeToggleBtn.textContent = '☀️ Light Mode';
+        GAME_WHITE = "#222222";
+        GAME_BLACK = "#e0e0e0";
+        GAME_RED = "tomato";
+        SPRINT_BAR_COLOR_EMPTY = "#444444";
+        SPRINT_BAR_COLOR_FULL = "#388E3C";
+        SPRINT_BAR_BORDER_COLOR = "#666666";
+    } else {
+        bodyElement.classList.add('light-mode');
+        darkModeToggleBtn.textContent = '🌙 Dark Mode';
+        GAME_WHITE = "white";
+        GAME_BLACK = "black";
+        GAME_RED = "red";
+        SPRINT_BAR_COLOR_EMPTY = "#cccccc";
+        SPRINT_BAR_COLOR_FULL = "#4CAF50";
+        SPRINT_BAR_BORDER_COLOR = "#aaaaaa";
+    }
+}
+
+darkModeToggleBtn.addEventListener('click', () => {
+    const isLightMode = bodyElement.classList.contains('light-mode');
+    setDarkMode(isLightMode);
+});
+// --- END DARK MODE ---
+
 function reset_game() {
     ball = new Ball();
     const r1_ai_state = robot1 ? robot1.isAIControlled : false;
     const r2_ai_state = robot2 ? robot2.isAIControlled : false;
 
-    robot1 = new Robot(100, HEIGHT / 2, BLUE_COLOR, WIDTH - GOAL_POST_DEPTH, r1_ai_state);
-    robot2 = new Robot(WIDTH - 100, HEIGHT / 2, GREEN_COLOR, GOAL_POST_DEPTH, r2_ai_state);
+    robot1 = new Robot(100, HEIGHT / 2, GAME_BLUE, WIDTH - GOAL_POST_DEPTH, r1_ai_state);
+    robot2 = new Robot(WIDTH - 100, HEIGHT / 2, GAME_GREEN, GOAL_POST_DEPTH, r2_ai_state);
     
     if (performance.now() - game_start_time > 100 || !isPaused) {
          game_start_time = performance.now();
@@ -124,7 +167,7 @@ class Ball {
     }
     draw() {
         ctx.beginPath(); ctx.arc(this.x, this.y, BALL_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = RED_COLOR; ctx.fill(); ctx.closePath();
+        ctx.fillStyle = GAME_RED; ctx.fill(); ctx.closePath();
     }
 }
 
@@ -136,37 +179,53 @@ class Robot {
         this.color = color;
         this.goal_x_target = goal_x_target_val;
         this.bounce_counter = 0;
-        this.sprinting = false; this.sprint_available = false;
-        this.sprint_start_time = 0; this.rest_start_time = performance.now();
-        this.sprint_multiplier = ROBOT_SPRINT_MULTIPLIER;
+        this.sprint_energy_max = SPRINT_ENERGY_MAX;
+        this.sprint_energy_current = SPRINT_ENERGY_MAX;
+        this.sprint_last_active_time = 0;
+        this.is_trying_to_sprint = false;
+        this.is_actually_sprinting = false;
         this.isCatchingBall = false; this.hasBall = false;
         this.manual_dx = 0; this.manual_dy = 0;
         this.isAIControlled = isAI;
     }
     toggleAIControl() {
         this.isAIControlled = !this.isAIControlled;
-        if (!this.isAIControlled) { this.vx = 0; this.vy = 0; this.manual_dx = 0; this.manual_dy = 0; }
+        if (!this.isAIControlled) { this.vx = 0; this.vy = 0; this.manual_dx = 0; this.manual_dy = 0; this.is_trying_to_sprint = false; this.is_actually_sprinting = false;}
     }
-    update_sprint_status() {
-        const ct = performance.now();
-        if (this.sprinting) { if (ct - this.sprint_start_time >= SPRINT_DURATION_MS) { this.sprinting = false; this.sprint_available = false; this.rest_start_time = ct; } }
-        else if (!this.sprint_available) { if (ct - this.rest_start_time >= SPRINT_COOLDOWN_MS) this.sprint_available = true; }
+    update_state_and_energy(deltaTime) {
+        if (this.is_trying_to_sprint && this.sprint_energy_current > 0) {
+            this.is_actually_sprinting = true;
+            this.sprint_energy_current -= SPRINT_COST_PER_SECOND * deltaTime;
+            this.sprint_energy_current = Math.max(0, this.sprint_energy_current);
+            this.sprint_last_active_time = performance.now();
+        } else {
+            this.is_actually_sprinting = false;
+        }
+        if (this.sprint_energy_current <= 0) { this.is_actually_sprinting = false; }
+        if (!this.is_actually_sprinting && this.sprint_energy_current < this.sprint_energy_max) {
+            if (performance.now() - this.sprint_last_active_time > SPRINT_RECHARGE_DELAY_MS) {
+                this.sprint_energy_current += SPRINT_RECHARGE_RATE_PER_SECOND * deltaTime;
+                this.sprint_energy_current = Math.min(this.sprint_energy_max, this.sprint_energy_current);
+            }
+        }
     }
     set_manual_movement_direction(dx, dy) { this.manual_dx = dx; this.manual_dy = dy; }
     set_catching(isCatchingInput) { this.isCatchingBall = isCatchingInput; if (!this.isCatchingBall && this.hasBall) this.hasBall = false; }
-    activate_sprint() { if (this.sprint_available && !this.sprinting) { this.sprinting = true; this.sprint_start_time = performance.now(); } }
+    set_sprint_intent(isIntentActive) { this.is_trying_to_sprint = isIntentActive; }
     move_towards_ball(ball_obj) {
         let dx = ball_obj.x - this.x; let dy = ball_obj.y - this.y; let dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist >= 2 * ROBOT_RADIUS && this.sprint_available && !this.sprinting) this.activate_sprint();
-        let current_speed = this.speed * (this.sprinting ? this.sprint_multiplier : 1);
+        if (dist > ROBOT_RADIUS * 3 && this.sprint_energy_current > SPRINT_ENERGY_MAX * 0.25) { this.set_sprint_intent(true); }
+        else if (dist < ROBOT_RADIUS * 1.5 || this.sprint_energy_current < SPRINT_ENERGY_MAX * 0.1) { this.set_sprint_intent(false); }
+        if (this.isCatchingBall && this.hasBall) { this.set_sprint_intent(false); }
+        let current_speed = this.speed * (this.is_actually_sprinting ? ROBOT_SPRINT_MULTIPLIER : 1);
         if (dist > 0) { this.vx = (dx / dist) * current_speed; this.vy = (dy / dist) * current_speed; } else { this.vx = 0; this.vy = 0; }
         if (dist > ROBOT_RADIUS + BALL_RADIUS - current_speed) { this.x += this.vx; this.y += this.vy; }
         this.x = Math.max(ROBOT_RADIUS, Math.min(WIDTH - ROBOT_RADIUS, this.x)); this.y = Math.max(ROBOT_RADIUS, Math.min(HEIGHT - ROBOT_RADIUS, this.y));
     }
     update_position(ball_obj) {
-        let current_move_speed = this.speed * (this.sprinting ? this.sprint_multiplier : 1);
+        let current_speed = this.speed * (this.is_actually_sprinting ? ROBOT_SPRINT_MULTIPLIER : 1);
         let move_x = 0, move_y = 0; let mag = Math.sqrt(this.manual_dx**2 + this.manual_dy**2);
-        if (mag > 0) { move_x = (this.manual_dx / mag) * current_move_speed; move_y = (this.manual_dy / mag) * current_move_speed; }
+        if (mag > 0) { move_x = (this.manual_dx / mag) * current_speed; move_y = (this.manual_dy / mag) * current_speed; }
         this.x += move_x; this.y += move_y;
         this.x = Math.max(ROBOT_RADIUS, Math.min(WIDTH - ROBOT_RADIUS, this.x)); this.y = Math.max(ROBOT_RADIUS, Math.min(HEIGHT - ROBOT_RADIUS, this.y));
         if (this.isCatchingBall) {
@@ -189,8 +248,7 @@ class Robot {
             let kicked = false;
             if (last_toucher !== null && last_toucher !== this && (ct - last_touch_time < TRICK_MANEUVER_WINDOW_MS)) {
                 ball_obj.vx = (this.goal_x_target > ball_obj.x ? TRICK_KICK_VX_STRENGTH : -TRICK_KICK_VX_STRENGTH);
-                ball_obj.vy = (Math.random() < 0.5 ? -1 : 1) * TRICK_KICK_VY_STRENGTH;
-                if (this.sprint_available && !this.sprinting) this.activate_sprint(); kicked = true;
+                ball_obj.vy = (Math.random() < 0.5 ? -1 : 1) * TRICK_KICK_VY_STRENGTH; kicked = true;
             } else {
                 let gdx = this.goal_x_target - ball_obj.x; let gdy = (HEIGHT / 2) - ball_obj.y; let gdist = Math.sqrt(gdx**2 + gdy**2);
                 if (gdist > 0) { ball_obj.vx = (gdx / gdist) * NORMAL_KICK_STRENGTH; ball_obj.vy = (gdy / gdist) * NORMAL_KICK_STRENGTH; kicked = true; }
@@ -216,7 +274,15 @@ class Robot {
             if (dist_ball < ROBOT_RADIUS + BALL_RADIUS + 5) { ball_obj.vy += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH; ball_obj.vx += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH * 0.5; last_touch_time = ct; }
         }
     }
-    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); }
+    drawSprintBar() {
+        const barX = this.x - SPRINT_BAR_WIDTH / 2; const barY = this.y + SPRINT_BAR_Y_OFFSET;
+        const energyRatio = this.sprint_energy_current / this.sprint_energy_max;
+        const currentBarWidth = SPRINT_BAR_WIDTH * energyRatio;
+        ctx.fillStyle = SPRINT_BAR_COLOR_EMPTY; ctx.fillRect(barX, barY, SPRINT_BAR_WIDTH, SPRINT_BAR_HEIGHT);
+        ctx.fillStyle = SPRINT_BAR_COLOR_FULL; ctx.fillRect(barX, barY, currentBarWidth, SPRINT_BAR_HEIGHT);
+        ctx.strokeStyle = SPRINT_BAR_BORDER_COLOR; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, SPRINT_BAR_WIDTH, SPRINT_BAR_HEIGHT);
+    }
+    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); this.drawSprintBar(); }
 }
 
 function togglePause() {
@@ -226,7 +292,7 @@ function togglePause() {
 }
 function adjustTimersForPause(duration) {
     start_time += duration; game_start_time += duration; if (last_touch_time !== 0) last_touch_time += duration;
-    [robot1, robot2].forEach(r => { if (r.sprinting) r.sprint_start_time += duration; else if (!r.sprint_available) r.rest_start_time += duration; });
+    [robot1, robot2].forEach(r => { if(r) { if (r.sprint_last_active_time !== 0) { r.sprint_last_active_time += duration; } } });
 }
 function toggleHelp() {
     showHelp = !showHelp;
@@ -237,8 +303,8 @@ function toggleHelp() {
 window.addEventListener('keydown', (e) => {
     if (e.code === PAUSE_KEY && !showHelp) { togglePause(); return; }
     if (e.code === HELP_KEY) { toggleHelp(); return; }
-    if (e.code === P1_AI_TOGGLE_KEY) { robot1.toggleAIControl(); return; }
-    if (e.code === P2_AI_TOGGLE_KEY) { robot2.toggleAIControl(); return; }
+    if (e.code === P1_AI_TOGGLE_KEY) { if(robot1) robot1.toggleAIControl(); return; }
+    if (e.code === P2_AI_TOGGLE_KEY) { if(robot2) robot2.toggleAIControl(); return; }
     if (isPaused && !showHelp) return;
     keysPressed[e.code] = true;
 });
@@ -248,22 +314,23 @@ window.addEventListener('keyup', (e) => {
 });
 
 function handle_manual_input() {
-    if (!robot1.isAIControlled) {
+    if (robot1 && !robot1.isAIControlled) {
         let p1_dx = 0, p1_dy = 0;
         if (keysPressed[P1_LEFT]) p1_dx -= 1; if (keysPressed[P1_RIGHT]) p1_dx += 1;
         if (keysPressed[P1_UP]) p1_dy -= 1; if (keysPressed[P1_DOWN]) p1_dy += 1;
         robot1.set_manual_movement_direction(p1_dx, p1_dy);
-        if (keysPressed[P1_SPRINT]) robot1.activate_sprint();
+        robot1.set_sprint_intent(!!keysPressed[P1_SPRINT]);
         robot1.set_catching(!!keysPressed[P1_CATCH]);
-    } else { robot1.set_manual_movement_direction(0,0); robot1.set_catching(false); }
-    if (!robot2.isAIControlled) {
+    } else if (robot1) { robot1.set_manual_movement_direction(0,0); robot1.set_sprint_intent(false); robot1.set_catching(false); }
+
+    if (robot2 && !robot2.isAIControlled) {
         let p2_dx = 0, p2_dy = 0;
         if (keysPressed[P2_LEFT]) p2_dx -= 1; if (keysPressed[P2_RIGHT]) p2_dx += 1;
         if (keysPressed[P2_UP]) p2_dy -= 1; if (keysPressed[P2_DOWN]) p2_dy += 1;
         robot2.set_manual_movement_direction(p2_dx, p2_dy);
-        if (keysPressed[P2_SPRINT]) robot2.activate_sprint();
+        robot2.set_sprint_intent(!!keysPressed[P2_SPRINT]);
         robot2.set_catching(!!keysPressed[P2_CATCH]);
-    } else { robot2.set_manual_movement_direction(0,0); robot2.set_catching(false); }
+    } else if (robot2) { robot2.set_manual_movement_direction(0,0); robot2.set_sprint_intent(false); robot2.set_catching(false); }
 }
 
 function setupTouchControls() {
@@ -278,7 +345,7 @@ function setupTouchControls() {
     touchMappings.forEach(m => {
         const btn = document.getElementById(m.id);
         if (btn) {
-            const onStart = (e) => { e.preventDefault(); if ((isPaused && !showHelp) || m.playerRobot().isAIControlled) return; keysPressed[m.key] = true; };
+            const onStart = (e) => { e.preventDefault(); if (!m.playerRobot() || (isPaused && !showHelp) || m.playerRobot().isAIControlled) return; keysPressed[m.key] = true; };
             const onEnd = (e) => { e.preventDefault(); keysPressed[m.key] = false; };
             btn.addEventListener('touchstart', onStart, { passive: false }); btn.addEventListener('touchend', onEnd, { passive: false });
             btn.addEventListener('mousedown', onStart); btn.addEventListener('mouseup', onEnd); btn.addEventListener('mouseleave', onEnd);
@@ -293,25 +360,42 @@ function update_info_panel() {
     scoreTextElem.textContent = `Score: Blue ${total_goals_robot1} - Green ${total_goals_robot2}`;
     totalTimeTextElem.textContent = `Total Playtime: ${Math.floor(total_play)}s`;
     roundTimeTextElem.textContent = `Current Round: ${Math.floor(round_play)}s`;
-    let r1_status = robot1.isAIControlled ? "AI Mode" : (robot1.sprinting ? 'Active' : (robot1.sprint_available ? 'Available' : 'Cooldown'));
-    if (!robot1.isAIControlled && robot1.hasBall) r1_status += ' (Dribbling)'; blueSprintTextElem.textContent = `Blue: ${r1_status}`;
-    let r2_status = robot2.isAIControlled ? "AI Mode" : (robot2.sprinting ? 'Active' : (robot2.sprint_available ? 'Available' : 'Cooldown'));
-    if (!robot2.isAIControlled && robot2.hasBall) r2_status += ' (Dribbling)'; greenSprintTextElem.textContent = `Green: ${r2_status}`;
+
+    if (robot1) {
+        let r1_sprint_info = `Energy: ${Math.floor(robot1.sprint_energy_current)}%`;
+        if (robot1.is_actually_sprinting) r1_sprint_info = "Sprinting";
+        let r1_status = robot1.isAIControlled ? "AI Mode" : r1_sprint_info;
+        if (!robot1.isAIControlled && robot1.hasBall) r1_status += ' (Dribbling)';
+        blueSprintTextElem.textContent = `Blue: ${r1_status}`;
+    }
+    if (robot2) {
+        let r2_sprint_info = `Energy: ${Math.floor(robot2.sprint_energy_current)}%`;
+        if (robot2.is_actually_sprinting) r2_sprint_info = "Sprinting";
+        let r2_status = robot2.isAIControlled ? "AI Mode" : r2_sprint_info;
+        if (!robot2.isAIControlled && robot2.hasBall) r2_status += ' (Dribbling)';
+        greenSprintTextElem.textContent = `Green: ${r2_status}`;
+    }
 }
 
 function drawPausedScreen() {
-    ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,WIDTH,HEIGHT);
-    ctx.fillStyle = "white"; ctx.font = "48px Arial"; ctx.textAlign = "center";
+    ctx.fillStyle = bodyElement.classList.contains('light-mode') ? "rgba(100,100,100,0.5)" : "rgba(0,0,0,0.5)";
+    ctx.fillRect(0,0,WIDTH,HEIGHT);
+    ctx.fillStyle = bodyElement.classList.contains('light-mode') ? GAME_BLACK : "white";
+    ctx.font = "48px Arial"; ctx.textAlign = "center";
     ctx.fillText("PAUSED", WIDTH/2, HEIGHT/2);
     ctx.font = "20px Arial"; ctx.fillText("Press P to Resume", WIDTH/2, HEIGHT/2 + 40);
 }
 function drawHelpMenu() {
-    ctx.fillStyle = "rgba(0,0,0,0.85)"; ctx.fillRect(0,0,WIDTH,HEIGHT);
+    ctx.fillStyle = bodyElement.classList.contains('light-mode') ? "rgba(200,200,200,0.85)" : "rgba(0,0,0,0.85)";
+    ctx.fillRect(0,0,WIDTH,HEIGHT);
     const pad = 30, boxW = Math.min(WIDTH*0.8, 500), boxX = (WIDTH-boxW)/2;
     const lines = 18, lH = 22, boxH = Math.min(HEIGHT*0.8, lines*lH + pad*2 + 40), boxY = (HEIGHT-boxH)/2;
-    ctx.fillStyle="#333"; ctx.strokeStyle="#555"; ctx.lineWidth=2;
+    ctx.fillStyle= bodyElement.classList.contains('light-mode') ? "#fafafa" : "#333";
+    ctx.strokeStyle= bodyElement.classList.contains('light-mode') ? "#ccc" : "#555";
+    ctx.lineWidth=2;
     ctx.fillRect(boxX,boxY,boxW,boxH); ctx.strokeRect(boxX,boxY,boxW,boxH);
-    ctx.fillStyle="white"; ctx.textAlign="center"; ctx.font="bold 24px Arial";
+    ctx.fillStyle = bodyElement.classList.contains('light-mode') ? GAME_BLACK : "white";
+    ctx.textAlign="center"; ctx.font="bold 24px Arial";
     ctx.fillText("Game Controls", WIDTH/2, boxY+pad+5);
     ctx.textAlign="left"; let cY = boxY+pad+45;
     const drawLine = (txt, bold=false, indent=0) => { ctx.font = `${bold?'bold ':''}15px Arial`; ctx.fillText(txt, boxX+pad+indent, cY); cY += 22; };
@@ -333,28 +417,41 @@ function drawHelpMenu() {
 }
 
 function gameLoop() {
+    const currentTime = performance.now();
+    const deltaTime = (currentTime - lastFrameTime) / 1000;
+    lastFrameTime = currentTime;
+
     if (!isPaused) {
-        robot1.update_sprint_status(); robot2.update_sprint_status();
+        if(robot1) robot1.update_state_and_energy(deltaTime); if(robot2) robot2.update_state_and_energy(deltaTime);
         handle_manual_input();
-        if (robot1.isAIControlled) robot1.move_towards_ball(ball); else robot1.update_position(ball);
-        if (robot2.isAIControlled) robot2.move_towards_ball(ball); else robot2.update_position(ball);
-        const r1_holding = !robot1.isAIControlled && robot1.isCatchingBall && robot1.hasBall;
-        const r2_holding = !robot2.isAIControlled && robot2.isCatchingBall && robot2.hasBall;
-        if (!r1_holding && !r2_holding) ball.move();
-        robot1.kick_ball_towards_goal(ball); robot2.kick_ball_towards_goal(ball);
-        robot1.check_robot_collision(robot2);
-        robot1.attempt_ball_unstick(ball); robot2.attempt_ball_unstick(ball);
+        if (robot1) { if (robot1.isAIControlled) robot1.move_towards_ball(ball); else robot1.update_position(ball); }
+        if (robot2) { if (robot2.isAIControlled) robot2.move_towards_ball(ball); else robot2.update_position(ball); }
+        const r1_holding = robot1 && !robot1.isAIControlled && robot1.isCatchingBall && robot1.hasBall;
+        const r2_holding = robot2 && !robot2.isAIControlled && robot2.isCatchingBall && robot2.hasBall;
+        if (ball && !r1_holding && !r2_holding) ball.move();
+        if(robot1 && ball) robot1.kick_ball_towards_goal(ball); if(robot2 && ball) robot2.kick_ball_towards_goal(ball);
+        if(robot1 && robot2) robot1.check_robot_collision(robot2);
+        if(robot1 && ball) robot1.attempt_ball_unstick(ball); if(robot2 && ball) robot2.attempt_ball_unstick(ball);
         update_info_panel();
     } else { update_info_panel(); }
-    ctx.fillStyle = WHITE; ctx.fillRect(0,0,WIDTH,HEIGHT);
-    ball.draw(); robot1.draw(); robot2.draw();
-    ctx.fillStyle = BLACK_COLOR;
+
+    ctx.fillStyle = GAME_WHITE;
+    ctx.fillRect(0,0,WIDTH,HEIGHT);
+    if(ball) ball.draw(); if(robot1) robot1.draw(); if(robot2) robot2.draw();
+    ctx.fillStyle = GAME_BLACK;
     ctx.fillRect(0, HEIGHT/2 - GOAL_WIDTH/2, GOAL_POST_DEPTH, GOAL_WIDTH);
     ctx.fillRect(WIDTH - GOAL_POST_DEPTH, HEIGHT/2 - GOAL_WIDTH/2, GOAL_POST_DEPTH, GOAL_WIDTH);
-    if (!showHelp) { ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.font = "14px Arial"; ctx.textAlign = "right"; ctx.fillText("H: Help | 1/2: AI", WIDTH-10, HEIGHT-10); }
+    if (!showHelp) {
+        ctx.fillStyle = bodyElement.classList.contains('light-mode') ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)";
+        ctx.font = "14px Arial"; ctx.textAlign = "right";
+        ctx.fillText("H: Help | 1/2: AI | Theme", WIDTH-10, HEIGHT-10);
+    }
     if (showHelp) drawHelpMenu(); else if (isPaused) drawPausedScreen();
     requestAnimationFrame(gameLoop);
 }
+
+// Initialize and start
+setDarkMode(true);
 reset_game();
 setupTouchControls();
 gameLoop();
