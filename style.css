@@ -15,7 +15,7 @@
     --toggle-button-bg: #333;
     --toggle-button-text: #fff;
     --sprint-bar-empty-bg: #444444;
-    --sprint-bar-full-bg: #388E3C;
+    --sprint-bar-full-bg: #388E3C; /* Green for full sprint */
     --sprint-bar-border: #666666;
 }
 
@@ -50,7 +50,7 @@ body.light-mode {
     --toggle-button-bg: #ddd;
     --toggle-button-text: #000;
     --sprint-bar-empty-bg: #cccccc;
-    --sprint-bar-full-bg: #4CAF50;
+    --sprint-bar-full-bg: #4CAF50; /* Green for full sprint */
     --sprint-bar-border: #aaaaaa;
 }
 
@@ -87,8 +87,8 @@ body.light-mode {
     border: 1px solid var(--panel-border);
     background-color: var(--panel-bg);
     color: var(--text-color);
-    min-width: 320px; /* Ensure enough width for columns */
-    max-width: 800px;
+    min-width: 320px;
+    max-width: 800px; /* Match canvas width for alignment */
     width: 100%;
     box-sizing: border-box;
     box-shadow: 0 2px 4px var(--shadow-color);
@@ -97,7 +97,7 @@ body.light-mode {
 .player-info-container {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 10px; /* Space before general game stats */
 }
 
 .player-info-column {
@@ -112,31 +112,31 @@ body.light-mode {
 .player-name {
     font-weight: bold;
     text-align: center;
-    margin-bottom: 5px !important;
+    margin-bottom: 5px !important; /* Add !important if needed to override other p margins */
 }
 
 .sprint-bar-container {
-    width: 100%;
-    height: 14px; /* Slightly taller bar */
+    width: 100%; /* Take full width of its column */
+    height: 14px; /* Or adjust as desired */
     background-color: var(--sprint-bar-empty-bg);
     border: 1px solid var(--sprint-bar-border);
-    border-radius: 4px; /* More rounded */
-    margin: 5px 0;
-    overflow: hidden;
+    border-radius: 4px;
+    margin: 5px 0; /* Space around the bar */
+    overflow: hidden; /* Ensures fill doesn't go outside rounded corners */
 }
 
 .sprint-bar-fill {
     height: 100%;
     background-color: var(--sprint-bar-full-bg);
-    width: 100%; /* JS will adjust this */
-    border-radius: 3px; /* Slightly smaller radius than container */
-    transition: width 0.1s linear;
+    width: 100%; /* JS will adjust this percentage */
+    border-radius: 3px; /* Slightly smaller radius than container for nice inset look */
+    transition: width 0.1s linear; /* Smooth transition for fill changes */
 }
 
 .game-stats-row {
     /* border-top: 1px solid var(--panel-border); */ /* Optional separator */
-    padding-top: 5px;
-    text-align: center;
+    padding-top: 5px; /* Space above game stats if player info is stacked */
+    text-align: center; /* Center the general game stats */
 }
 .game-stats-row p {
     margin: 4px 0; /* Slightly more spacing for game stats */
@@ -238,7 +238,7 @@ body.light-mode {
     }
     .player-info-container {
         flex-direction: column; /* Stack player info on small screens */
-        gap: 10px;
+        gap: 10px; /* Add gap when stacked */
     }
     .player-info-column {
         flex-basis: 100%; /* Full width when stacked */

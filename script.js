@@ -10,12 +10,12 @@ const GOAL_POST_DEPTH = 10;
 let GAME_WHITE = "white";
 let GAME_BLACK = "black";
 let GAME_RED = "red";
-const GAME_GREEN = "green";
-const GAME_BLUE = "blue";
+const GAME_GREEN = "green"; // Robot color
+const GAME_BLUE = "blue";   // Robot color
 
 // Gameplay Constants
 const ROBOT_BASE_SPEED = 2.5;
-const ROBOT_SPRINT_MULTIPLIER = 3.0;
+const ROBOT_SPRINT_MULTIPLIER = 3.0; // Faster sprint
 const SPRINT_ENERGY_MAX = 100;
 const SPRINT_COST_PER_SECOND = 35;
 const SPRINT_RECHARGE_RATE_PER_SECOND = 15;
@@ -39,7 +39,7 @@ let isPaused = false;
 let wasPausedBeforeHelp = false;
 let showHelp = false;
 let pauseStartTime = 0;
-let lastFrameTime = performance.now();
+let lastFrameTime = performance.now(); // For deltaTime
 
 // Key Mappings
 const P1_UP = 'ArrowUp';
@@ -82,7 +82,7 @@ const totalTimeTextElem = document.getElementById('totalTimeText');
 const roundTimeTextElem = document.getElementById('roundTimeText');
 const pauseHelpTextElem = document.getElementById('pauseHelpText');
 
-// New Info Panel DOM Elements
+// New Info Panel DOM Elements for Player Stats and Sprint Bars
 const p1SprintBarFill = document.getElementById('p1SprintBarFill');
 const blueStatusTextElem = document.getElementById('blueStatusText');
 const p2SprintBarFill = document.getElementById('p2SprintBarFill');
@@ -97,15 +97,14 @@ function setDarkMode(enabled) {
     if (enabled) {
         bodyElement.classList.remove('light-mode');
         darkModeToggleBtn.textContent = '☀️ Light Mode';
-        GAME_WHITE = "#222222";
-        GAME_BLACK = "#e0e0e0";
-        GAME_RED = "tomato";
-        // CSS variables handle sprint bar colors in the info panel
+        GAME_WHITE = "#222222"; // Canvas background for dark mode
+        GAME_BLACK = "#e0e0e0"; // Text, goals on canvas for dark mode
+        GAME_RED = "tomato";    // Brighter red for dark bg
     } else {
         bodyElement.classList.add('light-mode');
         darkModeToggleBtn.textContent = '🌙 Dark Mode';
-        GAME_WHITE = "white";
-        GAME_BLACK = "black";
+        GAME_WHITE = "white";   // Canvas background for light mode
+        GAME_BLACK = "black";   // Text, goals on canvas for light mode
         GAME_RED = "red";
     }
 }
@@ -171,11 +170,13 @@ class Robot {
         this.color = color;
         this.goal_x_target = goal_x_target_val;
         this.bounce_counter = 0;
+        // SPRINT ENERGY SYSTEM
         this.sprint_energy_max = SPRINT_ENERGY_MAX;
         this.sprint_energy_current = SPRINT_ENERGY_MAX;
         this.sprint_last_active_time = 0;
         this.is_trying_to_sprint = false;
         this.is_actually_sprinting = false;
+
         this.isCatchingBall = false; this.hasBall = false;
         this.manual_dx = 0; this.manual_dy = 0;
         this.isAIControlled = isAI;
@@ -266,7 +267,10 @@ class Robot {
             if (dist_ball < ROBOT_RADIUS + BALL_RADIUS + 5) { ball_obj.vy += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH; ball_obj.vx += (Math.random() < 0.5 ? -1 : 1) * BALL_UNSTICK_NUDGE_STRENGTH * 0.5; last_touch_time = ct; }
         }
     }
-    draw() { ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); }
+    draw() { // Sprint bar is now a DOM element
+        ctx.beginPath(); ctx.arc(this.x, this.y, ROBOT_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = this.color; ctx.fill(); ctx.closePath();
+    }
 }
 
 function togglePause() {
@@ -285,6 +289,9 @@ function toggleHelp() {
 }
 
 window.addEventListener('keydown', (e) => {
+    if ([P1_UP, P1_DOWN, P1_LEFT, P1_RIGHT, P2_UP, P2_DOWN, P2_LEFT, P2_RIGHT].includes(e.code)) {
+        if (!(isPaused && !showHelp)) { e.preventDefault(); }
+    }
     if (e.code === PAUSE_KEY && !showHelp) { togglePause(); return; }
     if (e.code === HELP_KEY) { toggleHelp(); return; }
     if (e.code === P1_AI_TOGGLE_KEY) { if(robot1) robot1.toggleAIControl(); return; }
