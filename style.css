@@ -26,7 +26,7 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    padding-top: 50px;
+    padding-top: 50px; /* Adjusted for potential info panel growth */
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: Arial, sans-serif;
@@ -78,7 +78,7 @@ body.light-mode {
 #gameCanvas {
     border: 1px solid var(--canvas-border);
     background-color: var(--canvas-bg);
-    touch-action: none;
+    touch-action: none; /* Prevent default touch actions like scrolling/zooming on canvas */
 }
 
 #infoPanel {
@@ -112,17 +112,17 @@ body.light-mode {
 .player-name {
     font-weight: bold;
     text-align: center;
-    margin-bottom: 5px !important; /* Add !important if needed to override other p margins */
+    margin-bottom: 5px !important;
 }
 
 .sprint-bar-container {
-    width: 100%; /* Take full width of its column */
-    height: 14px; /* Or adjust as desired */
+    width: 100%;
+    height: 14px;
     background-color: var(--sprint-bar-empty-bg);
     border: 1px solid var(--sprint-bar-border);
     border-radius: 4px;
-    margin: 5px 0; /* Space around the bar */
-    overflow: hidden; /* Ensures fill doesn't go outside rounded corners */
+    margin: 5px 0;
+    overflow: hidden;
 }
 
 .sprint-bar-fill {
@@ -134,16 +134,15 @@ body.light-mode {
 }
 
 .game-stats-row {
-    /* border-top: 1px solid var(--panel-border); */ /* Optional separator */
-    padding-top: 5px; /* Space above game stats if player info is stacked */
-    text-align: center; /* Center the general game stats */
+    padding-top: 5px;
+    text-align: center;
 }
 .game-stats-row p {
-    margin: 4px 0; /* Slightly more spacing for game stats */
+    margin: 4px 0;
     font-size: 0.95em;
 }
 #pauseHelpText {
-    font-size: 0.8em !important; /* Keep help text small */
+    font-size: 0.8em !important;
     margin-top: 8px !important;
 }
 
@@ -170,7 +169,7 @@ body.light-mode {
     background-color: var(--panel-bg);
     color: var(--text-color);
     flex: 1;
-    margin: 0 5px;
+    margin: 0 5px; /* Space between control panels */
 }
 
 .touch-controls p {
@@ -182,19 +181,19 @@ body.light-mode {
 .touch-button {
     padding: 12px 10px;
     min-width: 60px;
-    width: 100%;
-    max-width: 120px;
+    width: 100%; /* Buttons take full width of their group */
+    max-width: 120px; /* Max width for d-pad buttons for better layout */
     font-size: 1em;
     cursor: pointer;
     border: 1px solid var(--button-border);
     color: var(--button-text);
     background-color: var(--button-bg);
     border-radius: 5px;
-    user-select: none;
+    user-select: none; /* Prevent text selection on tap */
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
     box-sizing: border-box;
     transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
@@ -207,29 +206,32 @@ body.light-mode {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 5px; /* Gap between up/down and middle row */
     width: 100%;
 }
-.d-pad div {
+.d-pad div { /* Container for left, down, right buttons */
     display: flex;
-    justify-content: center;
-    gap: 5px;
+    justify-content: center; /* Center buttons if they don't fill width */
+    gap: 5px; /* Gap between L/D/R buttons */
     width: 100%;
 }
+/* D-pad specific button sizing */
 .d-pad-up, .d-pad-down {
-    width: calc(33.33% - 4px);
-     margin: 0 auto;
+    width: calc(33.33% - 4px); /* Aim for 1/3 width for a classic D-pad feel */
+     margin: 0 auto; /* Center the up/down buttons */
 }
 .d-pad-left, .d-pad-right {
-     width: calc(33.33% - 4px);
+     width: calc(33.33% - 4px); /* Approx 1/3 of the D-pad's middle row width */
 }
+/* Action buttons (Sprint, Catch) */
 .action-button {
-    margin-top: 5px;
+    margin-top: 5px; /* Small space above action buttons */
 }
+
 
 @media (max-width: 600px) {
     body {
-        padding-top: 60px;
+        padding-top: 60px; /* Ensure space for toggle button if it moves */
     }
     #darkModeToggle {
         top: 5px;
@@ -243,16 +245,20 @@ body.light-mode {
     .player-info-column {
         flex-basis: 100%; /* Full width when stacked */
     }
+
     #touchControlsContainer {
-        flex-direction: column;
-        gap: 10px;
+        flex-direction: column; /* Stack touch control panels */
+        gap: 10px; /* Space between stacked panels */
     }
     .touch-controls {
-        width: 90%;
-        margin: 0 auto;
+        width: 90%; /* Make panels take more width */
+        margin: 0 auto; /* Center stacked panels */
     }
     .touch-button {
-        padding: 15px 12px;
+        padding: 15px 12px; /* Larger tap targets */
         font-size: 1.1em;
+    }
+    .d-pad-up, .d-pad-down, .d-pad-left, .d-pad-right {
+        width: calc(30% - 4px); /* Adjust D-pad button sizes for stacked layout */
     }
 }
